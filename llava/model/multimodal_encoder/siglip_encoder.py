@@ -544,6 +544,8 @@ class SigLipVisionTower(nn.Module):
         self.config = SigLipVisionConfig()
 
         self.vision_tower_name = vision_tower
+        
+         self.select_layer = vision_tower_cfg.mm_vision_select_layer
 
         self.image_processor = SigLipImageProcessor()
 
