@@ -18,6 +18,7 @@ class CLIPVisionTower(nn.Module):
         self.vision_tower_name = vision_tower
         self.select_layer = args.mm_vision_select_layer
         self.select_feature = getattr(args, "mm_vision_select_feature", "patch")
+        
 
         if not delay_load:
             rank0_print(f"Loading vision tower: {vision_tower}")
@@ -68,13 +69,16 @@ class CLIPVisionTower(nn.Module):
     def forward(self, images):
         if type(images) is list:
             image_features = []
+            self.image_attentions = []
             for image in images:
                 image_forward_out = self.vision_tower(image.to(device=self.device, dtype=self.dtype).unsqueeze(0), output_hidden_states=True)
                 image_feature = self.feature_select(image_forward_out).to(image.dtype)
                 image_features.append(image_feature)
+                self.image_attentions.append(image_forward_out.attentions)
         else:
             image_forward_outs = self.vision_tower(images.to(device=self.device, dtype=self.dtype), output_hidden_states=True)
             image_features = self.feature_select(image_forward_outs).to(images.dtype)
+            self.image_attentions = image_forward_outs.attentions
 
         return image_features
 
