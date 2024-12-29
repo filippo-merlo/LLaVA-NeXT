@@ -32,17 +32,10 @@ from llava.utils import rank0_print
 
 
 class SigLipImageProcessor:
-    def __init__(
-        self,
-        image_mean=(0.5, 0.5, 0.5),
-        image_std=(0.5, 0.5, 0.5),
-        size=(384, 384),
-        crop_size: Dict[str, int] = None,
-        resample=Image.BICUBIC,
-        rescale_factor=1 / 255,
-        data_format="channels_first"
-    ):
+    def __init__(self, image_mean=(0.5, 0.5, 0.5), image_std=(0.5, 0.5, 0.5), size=(384, 384), crop_size: Dict[str, int] = None, resample=PILImageResampling.BICUBIC, rescale_factor=1 / 255, data_format=ChannelDimension.FIRST):
         crop_size = crop_size if crop_size is not None else {"height": 384, "width": 384}
+        crop_size = get_size_dict(crop_size, default_to_square=True, param_name="crop_size")
+
         self.image_mean = image_mean
         self.image_std = image_std
         self.size = size
@@ -51,10 +44,11 @@ class SigLipImageProcessor:
         self.data_format = data_format
         self.crop_size = crop_size
 
-    def preprocess(self, images, return_tensors=None):
+    def preprocess(self, images, return_tensors):
         if isinstance(images, Image.Image):
             images = [images]
         else:
+            # to adapt video data
             images = [to_numpy_array(image) for image in images]
             assert isinstance(images, list)
 
@@ -67,13 +61,8 @@ class SigLipImageProcessor:
             partial(to_channel_dimension_format, channel_dim=self.data_format, input_channel_dim=self.data_format),
         ]
 
-        processed_images = reduce(lambda x, f: [*map(f, x)], transforms, images)
-
-        # Collect both processed images and pixel values
-        data = {
-            "processed_images": processed_images,
-            "pixel_values": processed_images
-        }
+        images = reduce(lambda x, f: [*map(f, x)], transforms, images)
+        data = {"pixel_values": images}
 
         return BatchFeature(data=data, tensor_type=return_tensors)
 
