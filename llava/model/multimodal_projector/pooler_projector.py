@@ -26,7 +26,6 @@ class PoolerProjector(nn.Module):
         x = self.conv_pool(x)
         x = x.flatten(2).transpose(1, 2)
         x = self.proj(x)
-        print(len(x))
         return x
 
     @property
