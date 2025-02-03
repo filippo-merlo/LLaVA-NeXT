@@ -363,10 +363,12 @@ class LlavaMetaForCausalLM(ABC):
                             matched_anyres_max_num_patches = re.match(r"anyres_max_(\d+)", image_aspect_ratio)
                             if matched_anyres_max_num_patches:
                                 max_num_patches = int(matched_anyres_max_num_patches.group(1))
+                                print('max_num_patches:',max_num_patches)
 
                         if image_aspect_ratio == "anyres" or "anyres_max" in image_aspect_ratio:
                             if hasattr(self.get_vision_tower(), "image_size"):
                                 vision_tower_image_size = self.get_vision_tower().image_size
+                                print('vision_tower_image_size',vision_tower_image_size)
                             else:
                                 raise ValueError("vision_tower_image_size is not found in the vision tower.")
                             try:
@@ -374,7 +376,10 @@ class LlavaMetaForCausalLM(ABC):
                             except Exception as e:
                                 rank0_print(f"Error: {e}")
                                 num_patch_width, num_patch_height = 2, 2
+                            print('n patches:', num_patch_width, num_patch_height)
+                            print('image features pre view:', image_feature)
                             image_feature = image_feature.view(num_patch_height, num_patch_width, height, width, -1)
+                            print('image features post view:', image_feature)
                             
                         else:
                             image_feature = image_feature.view(2, 2, height, width, -1)
@@ -386,16 +391,50 @@ class LlavaMetaForCausalLM(ABC):
                             image_feature = image_feature.flatten(1, 2).transpose(0, 1)
                         elif "unpad" in mm_patch_merge_type and "anyres_max" in image_aspect_ratio and matched_anyres_max_num_patches:
                             unit = image_feature.shape[2]
+                            print(f"Initial image feature shape: {image_feature.shape}")
+                            
+                            # Permute and flatten
                             image_feature = image_feature.permute(4, 0, 2, 1, 3).contiguous()
+                            print(f"After permute: {image_feature.shape}")
+                            
                             image_feature = image_feature.flatten(1, 2).flatten(2, 3)
+                            print(f"After flattening: {image_feature.shape}")
+                            
+                            # Unpad the image
                             image_feature = unpad_image(image_feature, image_sizes[image_idx])
+                            print(f"After unpadding: {image_feature.shape}")
+                            
+                            # Compute new dimensions based on max patches
                             c, h, w = image_feature.shape
                             times = math.sqrt(h * w / (max_num_patches * unit**2))
+                            print(f"Computed downscale factor (times): {times}")
+                            
+                            # If the image is too large, downsample using bilinear interpolation
                             if times > 1.1:
-                                image_feature = image_feature[None]
-                                image_feature = nn.functional.interpolate(image_feature, [int(h // times), int(w // times)], mode="bilinear")[0]
-                            image_feature = torch.cat((image_feature, self.model.image_newline[:, None, None].expand(*image_feature.shape[:-1], 1).to(image_feature.device)), dim=-1)
+                                image_feature = image_feature[None]  # Add batch dim for interpolation
+                                print(f"Before interpolation: {image_feature.shape}")
+                                
+                                image_feature = nn.functional.interpolate(
+                                    image_feature, 
+                                    [int(h // times), int(w // times)], 
+                                    mode="bilinear"
+                                )[0]  # Remove batch dim
+                                
+                                print(f"After interpolation (resized): {image_feature.shape}")
+                            
+                            # Append a newline token
+                            image_feature = torch.cat((
+                                image_feature, 
+                                self.model.image_newline[:, None, None]
+                                    .expand(*image_feature.shape[:-1], 1)
+                                    .to(image_feature.device)
+                            ), dim=-1)
+                            print(f"After adding newline token: {image_feature.shape}")
+                            
+                            # Final transformation
                             image_feature = image_feature.flatten(1, 2).transpose(0, 1)
+                            print(f"Final image feature shape: {image_feature.shape}")
+
                         elif "unpad" in mm_patch_merge_type:
                             image_feature = image_feature.permute(4, 0, 2, 1, 3).contiguous()
                             image_feature = image_feature.flatten(1, 2).flatten(2, 3)
