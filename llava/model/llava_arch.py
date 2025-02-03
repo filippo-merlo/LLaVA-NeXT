@@ -377,9 +377,9 @@ class LlavaMetaForCausalLM(ABC):
                                 rank0_print(f"Error: {e}")
                                 num_patch_width, num_patch_height = 2, 2
                             print('n patches:', num_patch_width, num_patch_height)
-                            print('image features pre view:', image_feature)
+                            print('image features pre view:', image_feature.size())
                             image_feature = image_feature.view(num_patch_height, num_patch_width, height, width, -1)
-                            print('image features post view:', image_feature)
+                            print('image features post view:', image_feature.size())
                             
                         else:
                             image_feature = image_feature.view(2, 2, height, width, -1)
