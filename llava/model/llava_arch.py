@@ -294,6 +294,9 @@ class LlavaMetaForCausalLM(ABC):
             mm_patch_merge_type = getattr(self.config, "mm_patch_merge_type", "flat")
             image_aspect_ratio = getattr(self.config, "image_aspect_ratio", "square")
             mm_newline_position = getattr(self.config, "mm_newline_position", "one_token")
+            print('mm_patch_merge_type:', mm_patch_merge_type)
+            print('image_aspect_ratio:', image_aspect_ratio)
+            print('mm_newline_position:', mm_newline_position)
 
             if mm_patch_merge_type == "flat":
                 image_features = [x.flatten(0, 1) for x in image_features]
