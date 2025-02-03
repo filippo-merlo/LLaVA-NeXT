@@ -191,8 +191,10 @@ class LlavaMetaForCausalLM(ABC):
 
     def encode_images(self, images):
         image_features = self.get_model().get_vision_tower()(images)
+        print('vision_tower_encode:',image_features.size())
         # image_features = self.get_model().vision_resampler(image_features, images=images)
         image_features = self.get_model().mm_projector(image_features)
+        print('projector_encode:',image_features.size())
         return image_features
     
     def encode_multimodals(self, videos_or_images, video_idx_in_batch, split_sizes=None):
@@ -301,7 +303,7 @@ class LlavaMetaForCausalLM(ABC):
             if mm_patch_merge_type == "flat":
                 image_features = [x.flatten(0, 1) for x in image_features]
 
-            elif mm_patch_merge_type.startswith("spatial"):
+            elif mm_patch_merge_type.startswith("spatial"): # <-
                 new_image_features = []
                 for image_idx, image_feature in enumerate(image_features):
                     # FIXME: now assume the image is square, and split to 2x2 patches
@@ -337,10 +339,10 @@ class LlavaMetaForCausalLM(ABC):
 
                             new_image_features.append(image_feature.flatten(0, 1))
                             
-                        elif mm_newline_position == "one_token":
+                        elif mm_newline_position == "one_token":  
                             # one-token
                             image_feature = image_feature.flatten(0, 1)
-                            if 'unpad' in mm_patch_merge_type:
+                            if 'unpad' in mm_patch_merge_type:  
                                 image_feature = torch.cat((
                                     image_feature,
                                     self.model.image_newline[None].to(image_feature.device)
@@ -373,6 +375,7 @@ class LlavaMetaForCausalLM(ABC):
                                 rank0_print(f"Error: {e}")
                                 num_patch_width, num_patch_height = 2, 2
                             image_feature = image_feature.view(num_patch_height, num_patch_width, height, width, -1)
+                            
                         else:
                             image_feature = image_feature.view(2, 2, height, width, -1)
 
