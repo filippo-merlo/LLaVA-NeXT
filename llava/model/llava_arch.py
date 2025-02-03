@@ -415,6 +415,7 @@ class LlavaMetaForCausalLM(ABC):
                 raise ValueError(f"Unexpected mm_patch_merge_type: {self.config.mm_patch_merge_type}")
         else:
             image_features = self.encode_images(images)
+            print('simple encoding')
 
         for idx, feat in enumerate(image_features):
             print(f"Batch {idx} - Image Embedding Length: {feat.shape[0]}")
