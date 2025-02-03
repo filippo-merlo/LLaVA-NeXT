@@ -441,13 +441,17 @@ class LlavaMetaForCausalLM(ABC):
                             image_feature = unpad_image(image_feature, image_sizes[image_idx])
                             image_feature = torch.cat((image_feature, self.model.image_newline[:, None, None].expand(*image_feature.shape[:-1], 1).to(image_feature.device)), dim=-1)
                             image_feature = image_feature.flatten(1, 2).transpose(0, 1)
+                            print(f"Unpad Final image feature shape: {image_feature.shape}")
                         else:
                             image_feature = image_feature.permute(0, 2, 1, 3, 4).contiguous()
                             image_feature = image_feature.flatten(0, 3)
+                            print(f"Else Final image feature shape: {image_feature.shape}")
                         if "nobase" in mm_patch_merge_type:
                             pass
                         else:
                             image_feature = torch.cat((base_image_feature, image_feature), dim=0)
+                            print('Base image feat:', base_image_feature.size())
+                            print(f"Cat Final image feature shape: {image_feature.shape}")
                         new_image_features.append(image_feature)
                     else:  # single image operations
                         image_feature = image_feature[0]
@@ -464,6 +468,7 @@ class LlavaMetaForCausalLM(ABC):
 
         for idx, feat in enumerate(image_features):
             print(f"Batch {idx} - Image Embedding Length: {feat.shape[0]}")
+            
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, "tune_mm_mlp_adapter", False) and getattr(self.config, "mm_use_im_start_end", False):
             raise NotImplementedError
