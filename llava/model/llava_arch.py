@@ -441,11 +441,9 @@ class LlavaMetaForCausalLM(ABC):
                             image_feature = unpad_image(image_feature, image_sizes[image_idx])
                             image_feature = torch.cat((image_feature, self.model.image_newline[:, None, None].expand(*image_feature.shape[:-1], 1).to(image_feature.device)), dim=-1)
                             image_feature = image_feature.flatten(1, 2).transpose(0, 1)
-                            print(f"Unpad Final image feature shape: {image_feature.shape}")
                         else:
                             image_feature = image_feature.permute(0, 2, 1, 3, 4).contiguous()
                             image_feature = image_feature.flatten(0, 3)
-                            print(f"Else Final image feature shape: {image_feature.shape}")
                         if "nobase" in mm_patch_merge_type:
                             pass
                         else:
